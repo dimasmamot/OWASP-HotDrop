@@ -13,5 +13,9 @@ def masbor():
 def masbor2():
     return "awawawa"
 
+@app.route("/test3")
+def masbor3():
+    return "awawawa masbor ini auto"
+
 if __name__ == "__main__":
     app.run()
