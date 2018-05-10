@@ -242,7 +242,7 @@ def registerSensor(nama_sensor, id_user):
     try:
         with dbconn.cursor() as cursor:
             sql = "INSERT INTO `tb_sensor` (`fk_id_user`, `sensor_name`) VALUES (%s, %s)"
-            cursor.execute(sql, (nama_sensor, id_user))
+            cursor.execute(sql, (id_user, nama_sensor))
         dbconn.commit()
         success = True
     finally:
