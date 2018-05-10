@@ -34,7 +34,7 @@ from linebot.models import(
     SourceUser, SourceGroup, SourceRoom
 )
 
-from conn import connection
+from conn import *
 from messagevar import *
 
 app = Flask(__name__)
@@ -231,6 +231,7 @@ def isRegistered(line_user_id):
             cursor.execute(sql, (line_user_id,))
             result = cursor.fetchone()
             registered = True
+            print result
             return result
     finally:
         dbconn.close()
