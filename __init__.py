@@ -230,7 +230,7 @@ def registerUser(line_user_id, generatedToken, full_name):
         return success
 
 def registerSensor(nama_sensor, id_user):
-    print("nama sensor : {}, id_user : {}".format(type(str(nama_sensor)), type(id_user)),file=sys.stdout)
+    print("nama sensor : {}, id_user : {}".format(nama_sensor, id_user),file=sys.stdout)
     dbconn = pymysql.connect(
         host='localhost',
         user='root',
@@ -243,9 +243,11 @@ def registerSensor(nama_sensor, id_user):
     try:
         with dbconn.cursor() as cursor:
             sql = "INSERT INTO `tb_sensor` (`fk_id_user`, `sensor_name`) VALUES (%d, %s)"
-            cursor.execute(sql, (id_user, str(nama_sensor)))
+            cursor.execute(sql, (id_user, nama_sensor))
         dbconn.commit()
         success = True
+    except e:
+        print(e,file=sys.stderr)
     finally:
         dbconn.close()
         return success
