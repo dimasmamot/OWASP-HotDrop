@@ -159,16 +159,17 @@ def message_text(event):
                 )
         
         elif command == 'addsensor':
+            print(parsedText[1])
             # Jika Event add sensor diterima melalui private chat
             if isinstance(event.source, SourceUser):
-                print("event add sensor diterima melalui privvate chat",file=sys.stdout)
+                print("event add sensor diterima melalui privvate chat" ,file=sys.stdout)
                 if re.match('^[\w-]+$', parsedText[1]):
                     print("nama sensor valid",file=sys.stdout)
                     print(parsedText[1])
-                    isRegisteredVar = isRegistered(event.source.user_id)
-                    if isRegisteredVar:
+                    id_user = isRegistered(event.source.user_id)
+                    if id_user:
                         print("User sudah registrasi",file=sys.stdout)
-                        if registerSensor(parsedText[1], isRegisteredVar['id']):
+                        if registerSensor(parsedText[1], id_user['id']):
                             print("Sensor berhasil di tambahkan",file=sys.stdout)
                             #Reply penambahan sensor berhasil & lanjut ke tahap selanjutnya
                             line_bot_api.reply_message(
