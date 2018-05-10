@@ -83,14 +83,17 @@ def message_text(event):
         command = parsedText[0][1:]
 
         if command == 'register':
+            print "Event register berjalan"
             # Jika pesan dikirimkan secara private (private chat)
             if isinstance(event.source, SourceUser):
+                print "Mendapat pesan dari user lewat private chat"
                 profile = line_bot_api.get_profile(event.source.user_id)
                 #check apakah userid sudah register atau belum
                 #event.source.user_id is 
                 isRegisteredVar = isRegistered(event.source.user_id)
                 # Jika tidak terjadi error, dan user sudah register
                 if isRegisteredVar:
+                    print "User sudah terdaftar"
                     #Reply buat gausa register
                     line_bot_api.reply_message(
                         event.reply_token,
@@ -98,9 +101,11 @@ def message_text(event):
                     )
                 # Jika tidak terjadi error, dan user belum register
                 elif isRegisteredVar == None:
+                    print "User belum terdaftar"
                     generatedToken = generateToken()
                     # Jika register berhasil dan tidak ada error
                     if registerUser(event.source.user_id, generatedToken, profile.display_name):
+                        print "User berhasil registrasi"
                         #Reply register berhasil & lanjut ke tahap selanjutnya
                         #Kirim token
                         line_bot_api.reply_message(
@@ -109,12 +114,14 @@ def message_text(event):
                         )
                     # Jika terjadi error pada saat registrasi
                     else:
+                        print "Error terjadi pada saat registrasi"
                         line_bot_api.reply_message(
                             event.reply_token,
                             TextMessage(text=exceptionMsg.format(22,adminEmail))
                         )
                 # Jika terjadi error
                 else:
+                    print "Error terjadi pada saat pengecekan status registrasi"
                     # exception raised
                     line_bot_api.reply_message(
                         event.reply_token,
@@ -122,6 +129,7 @@ def message_text(event):
                     )
             # Jika pesan dikirimkan melalui grup/bukan private chat
             else:
+                print "Pesan dikirim melalui selain private chat"
                 line_bot_api.reply_message(
                     event.reply_token,
                     TextMessage(text=chatRoomFailed)
@@ -236,7 +244,7 @@ if __name__ == "__main__":
         usage='Usage: python ' + __file__ + '[--port <port>] [--help]'
     )
     arg_parser.add_argument('-p', '--port', default=8000, help='port')
-    arg_parser.add_argument('-d', '--debug', default=False, help='debug')
+    arg_parser.add_argument('-d', '--debug', default=True, help='debug')
     options = arg_parser.parse_args()
 
     app.run(debug=options.debug, port=options.port)
