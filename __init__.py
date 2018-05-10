@@ -169,7 +169,7 @@ def message_text(event):
                     id_user = isRegistered(event.source.user_id)
                     if id_user:
                         print("User sudah registrasi",file=sys.stdout)
-                        if registerSensor(parsedText[1], id_user['id']):
+                        if registerSensor(parsedText[1], id_user['id_user']):
                             print("Sensor berhasil di tambahkan",file=sys.stdout)
                             #Reply penambahan sensor berhasil & lanjut ke tahap selanjutnya
                             line_bot_api.reply_message(
