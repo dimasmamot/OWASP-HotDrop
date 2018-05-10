@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import errno
 import os, binascii
 import sys
-import pymysql.cursors
+import pymysql
 import re
 
 # Library untuk signature validation
