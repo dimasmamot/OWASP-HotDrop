@@ -246,8 +246,8 @@ def registerSensor(nama_sensor, id_user):
             cursor.execute(sql, (id_user, nama_sensor))
         dbconn.commit()
         success = True
-    except e:
-        print(e,file=sys.stderr)
+    except Exception as err:
+        print(err,file=sys.stderr)
     finally:
         dbconn.close()
         return success
