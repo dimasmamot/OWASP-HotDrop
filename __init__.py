@@ -231,7 +231,8 @@ def isRegistered(line_user_id):
             cursor.execute(sql, (line_user_id,))
             result = cursor.fetchone()
             registered = True
-            print result
+            print(registered)
+            print(result)
             return result
     finally:
         dbconn.close()
