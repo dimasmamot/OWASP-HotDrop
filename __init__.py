@@ -1,30 +1,63 @@
-import os
+from __future__ import unicode_literals
+
+import errno
+import os, binascii
 import sys
+import pymysql.cursors
+import re
+
+# Library untuk signature validation
+import base64
+import hashlib
+import hmac
+
+# Library untuk menghandle argument yang di passing pada saat deploy server
 from argparse import ArgumentParser
 
+# Flask framework untuk mengatur routing dan request
 from flask import Flask, request, abort
+
+# Official SDK Linebot untuk konfigurasi dan inisialisasi webhook, serta komunikasi dengan api bot
 from linebot import(
     LineBotApi, WebhookHandler
 )
+# Library linebot sdk untuk handling exception yang dihasilkan oleh sdk line bot
 from linebot.exceptions import(
     InvalidSignatureError
 )
+# Library untuk masing-masing fitur/model yang diperlukan untuk bot ini
+# MessageEvent untu menghandle pesan yang masuk ke webhook
+# TextMessage adalah object pesan teks
+# TextSendMessage handler untuk mengirim pesan teks (push/reply)
 from linebot.models import(
-    MessageEvent, TextMessage, TextSendMessage
+    MessageEvent, TextMessage, TextSendMessage,
+    SourceUser, SourceGroup, SourceRoom
 )
 
+from conn import connection
+from messagevar import *
+
+dbconn = connection
 app = Flask(__name__)
 
+# Line channel secret, didapat dari line developer
 channel_secret = "59ddbf04f1c9b55f927c83f93c836ba5"
+# Line access token, didapat dari line developer
 channel_access_token = "Nu2ufpRa8DhhJ7BSxJpmEILjv69vqaYzGLxF0s00Cjg0pEwuFdARlC9awrtZgR7fjXBf3gnVS6wNaI6VoPjS4NbbMhhxyne6fpj8I3SW32LMd7tmWEgOTeT/YacRHmqzHnhEIgZPhqOp4o5HFXoldgdB04t89/1O/w1cDnyilFU="
+
+# Cek apakah line secret ada
 if channel_secret is None:
-    print('Specify LINE_CHANNEL_SECRET as environment variable.')
+    print('Set LINE_CHANNEL_SECRET sebagai environment variable')
     sys.exit(1)
+# Cek apakah line secret ada
 if channel_access_token is None:
-    print('Specify LINE_CHANNEL_ACCESS_TOKEN as environment variable.')
+    print('Set LINE_CHANNEL_ACCESS_TOKEN sebagai environment variable')
     sys.exit(1)
 
+# Inisialisasi instance LineBotApi
 line_bot_api = LineBotApi(channel_access_token)
+
+# Inisialisasi handler untuk masing-masing model pada webhook
 handler = WebhookHandler(channel_secret)
 
 @app.route("/callback", methods=['POST'])
@@ -43,10 +76,160 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def message_text(event):
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=event.message.text)
-    )
+    text = event.message.text
+
+    if text[:1] == '/':
+        parsedText = text.split()
+        command = parsedText[0][1:]
+
+        if command == 'register':
+            # Jika pesan dikirimkan secara private (private chat)
+            if isinstance(event.source, SourceUser):
+                profile = line_bot_api.get_profile(event.source.user_id)
+                #check apakah userid sudah register atau belum
+                #event.source.user_id is 
+                isRegisteredVar = isRegistered(event.source.user_id)
+                # Jika tidak terjadi error, dan user sudah register
+                if isRegisteredVar:
+                    #Reply buat gausa register
+                    line_bot_api.reply_message(
+                        event.reply_token,
+                        TextMessage(text=alreadyRegistered)
+                    )
+                # Jika tidak terjadi error, dan user belum register
+                elif isRegisteredVar == None:
+                    generatedToken = generateToken()
+                    # Jika register berhasil dan tidak ada error
+                    if registerUser(event.source.user_id, generatedToken, profile.display_name):
+                        #Reply register berhasil & lanjut ke tahap selanjutnya
+                        #Kirim token
+                        line_bot_api.reply_message(
+                            event.reply_token,
+                            TextMessage(text=regSuccess.format(generatedToken))
+                        )
+                    # Jika terjadi error pada saat registrasi
+                    else:
+                        line_bot_api.reply_message(
+                            event.reply_token,
+                            TextMessage(text=exceptionMsg.format(22,adminEmail))
+                        )
+                # Jika terjadi error
+                else:
+                    # exception raised
+                    line_bot_api.reply_message(
+                        event.reply_token,
+                        TextMessage(text=exceptionMsg.format(23,adminEmail))
+                    )
+            # Jika pesan dikirimkan melalui grup/bukan private chat
+            else:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextMessage(text=chatRoomFailed)
+                )
+        elif command == 'help':
+            if isinstance(event.source, SourceUser):
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextMessage(text=helpMsg)
+                )
+            else :
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextMessage(text=chatRoomFailed)
+                )
+        
+        elif command == 'about':
+            if isinstance(event.source, SourceUser):
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextMessage(text=aboutMsg.format(hotdropGithub))
+                )
+            else:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextMessage(text=chatRoomFailed)
+                )
+        
+        elif command == 'addsensor':
+            if isinstance(event.source, SourceUser):
+                if re.match('^[\w-]+$', parsedText[1]):
+                    isRegisteredVar = isRegistered(event.source.user_id)
+                    if isRegisteredVar:
+                        if registerSensor(parsedText[1], isRegisteredVar['id']):
+                            #Reply penambahan sensor berhasil & lanjut ke tahap selanjutnya
+                            line_bot_api.reply_message(
+                                event.reply_token,
+                                TextMessage(text=addSensorSuccess.format(parsedText[1]))
+                            )
+                        # Jika terjadi error pada saat menambah sensor
+                        else:
+                            line_bot_api.reply_message(
+                                event.reply_token,
+                                TextMessage(text=exceptionMsg.format(24,adminEmail))
+                            )
+                    elif isRegisteredVar == None:
+                        line_bot_api.reply_message(
+                            event.reply_token,
+                            TextMessage(text=unregisteredMsg)
+                        )
+                    else:
+                        line_bot_api.reply_message(
+                            event.reply_token,
+                            TextMessage(text=exceptionMsg.format(23,adminEmail))
+                        )
+                else:
+                    line_bot_api.reply_message(
+                        event.reply_token,
+                        TextMessage(text=illegalCharSensor)
+                    )
+            else:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextMessage(text=chatRoomFailed)
+                )
+                
+
+def registerUser(line_user_id, generatedToken, full_name):
+    success = False
+    try:        
+        with dbconn.cursor() as cursor:
+            sql = "INSERT INTO `tb_user` (`line_id_user`, `token`, `full_name`) VALUES (%s, %s, %s)"
+            cursor.execute(sql, (line_user_id, generatedToken, full_name))
+        dbconn.commit()
+        success = True
+    finally:
+        dbconn.close()
+        return success
+
+def registerSensor(nama_sensor, id_user):
+    success = False
+    try:
+        with dbconn.cursor() as cursor:
+            sql = "INSERT INTO `tb_sensor` (`fk_id_user`, `sensor_name`) VALUES (%s, %s)"
+            cursor.execute(sql, (nama_sensor, id_user))
+        dbconn.commit()
+        success = True
+    finally:
+        dbconn.close()
+        return success
+
+def isRegistered(line_user_id):
+    registered = False
+    try:
+        with dbconn.cursor() as cursor:
+            sql = "SELECT `id_user` FROM `tb_user` WHERE `line_id_user`=%s"
+            cursor.execute(sql, (line_user_id,))
+            result = cursor.fetchone()
+            registered = True
+            return result
+    finally:
+        dbconn.close()
+        if registered == False:
+            return False
+
+def generateToken():
+    token = binascii.b2a_hex(os.urandom(16))
+    return token
 
 if __name__ == "__main__":
     arg_parser = ArgumentParser(
