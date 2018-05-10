@@ -34,7 +34,7 @@ from linebot.models import(
     SourceUser, SourceGroup, SourceRoom
 )
 
-from conn import *
+# from conn import *
 from messagevar import *
 
 app = Flask(__name__)
@@ -197,7 +197,14 @@ def message_text(event):
                 
 
 def registerUser(line_user_id, generatedToken, full_name):
-    dbconn = connection
+    dbconn = pymysql.connect(
+        host='localhost',
+        user='root',
+        password='9L1reyib',
+        db='hotdrop',
+        charset='utf8mb4',
+        cursorclass=pymysql.cursors.DictCursor
+    )
     success = False
     try:        
         with dbconn.cursor() as cursor:
@@ -210,7 +217,14 @@ def registerUser(line_user_id, generatedToken, full_name):
         return success
 
 def registerSensor(nama_sensor, id_user):
-    dbconn = connection
+    dbconn = pymysql.connect(
+        host='localhost',
+        user='root',
+        password='9L1reyib',
+        db='hotdrop',
+        charset='utf8mb4',
+        cursorclass=pymysql.cursors.DictCursor
+    )
     success = False
     try:
         with dbconn.cursor() as cursor:
@@ -223,7 +237,14 @@ def registerSensor(nama_sensor, id_user):
         return success
 
 def isRegistered(line_user_id):
-    dbconn = connection
+    dbconn = pymysql.connect(
+        host='localhost',
+        user='root',
+        password='9L1reyib',
+        db='hotdrop',
+        charset='utf8mb4',
+        cursorclass=pymysql.cursors.DictCursor
+    )
     registered = False
     try:
         with dbconn.cursor() as cursor:
