@@ -250,6 +250,7 @@ def registerSensor(nama_sensor, id_user):
         print(err,file=sys.stderr)
     finally:
         dbconn.close()
+        print(success)
         return success
 
 def isRegistered(line_user_id):
