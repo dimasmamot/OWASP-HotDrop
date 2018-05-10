@@ -133,6 +133,7 @@ def message_text(event):
                     event.reply_token,
                     TextMessage(text=chatRoomFailed)
                 )
+
         elif command == 'help':
             if isinstance(event.source, SourceUser):
                 line_bot_api.reply_message(
@@ -158,11 +159,17 @@ def message_text(event):
                 )
         
         elif command == 'addsensor':
+            # Jika Event add sensor diterima melalui private chat
             if isinstance(event.source, SourceUser):
+                print("event add sensor diterima melalui privvate chat",file=sys.stdout)
                 if re.match('^[\w-]+$', parsedText[1]):
+                    print("nama sensor valid",file=sys.stdout)
+                    print(parsedText[1])
                     isRegisteredVar = isRegistered(event.source.user_id)
                     if isRegisteredVar:
+                        print("User sudah registrasi",file=sys.stdout)
                         if registerSensor(parsedText[1], isRegisteredVar['id']):
+                            print("Sensor berhasil di tambahkan",file=sys.stdout)
                             #Reply penambahan sensor berhasil & lanjut ke tahap selanjutnya
                             line_bot_api.reply_message(
                                 event.reply_token,
@@ -170,26 +177,31 @@ def message_text(event):
                             )
                         # Jika terjadi error pada saat menambah sensor
                         else:
+                            print("Terjadi error penambahan sensor",file=sys.stdout)
                             line_bot_api.reply_message(
                                 event.reply_token,
                                 TextMessage(text=exceptionMsg.format(24,adminEmail))
                             )
                     elif isRegisteredVar == None:
+                        print("User belum teregistrasi",file=sys.stdout)
                         line_bot_api.reply_message(
                             event.reply_token,
                             TextMessage(text=unregisteredMsg)
                         )
                     else:
+                        print("Terjadi error pada saat cek status registrasi",file=sys.stdout)
                         line_bot_api.reply_message(
                             event.reply_token,
                             TextMessage(text=exceptionMsg.format(23,adminEmail))
                         )
                 else:
+                    print("Nama sensor tidak valid",file=sys.stdout)
                     line_bot_api.reply_message(
                         event.reply_token,
                         TextMessage(text=illegalCharSensor)
                     )
             else:
+                print("Menerima chat diluar private chat")
                 line_bot_api.reply_message(
                     event.reply_token,
                     TextMessage(text=chatRoomFailed)
