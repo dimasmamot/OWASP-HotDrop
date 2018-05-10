@@ -230,7 +230,7 @@ def registerUser(line_user_id, generatedToken, full_name):
         return success
 
 def registerSensor(nama_sensor, id_user):
-    print("nama sensor : {}, id_user : {}".format(nama_sensor, id_user),file=sys.stdout)
+    print("nama sensor : {}, id_user : {}".format(type(nama_sensor), type(id_user)),file=sys.stdout)
     dbconn = pymysql.connect(
         host='localhost',
         user='root',
