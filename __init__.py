@@ -37,7 +37,6 @@ from linebot.models import(
 from conn import connection
 from messagevar import *
 
-dbconn = connection
 app = Flask(__name__)
 
 # Line channel secret, didapat dari line developer
@@ -198,6 +197,7 @@ def message_text(event):
                 
 
 def registerUser(line_user_id, generatedToken, full_name):
+    dbconn = connection
     success = False
     try:        
         with dbconn.cursor() as cursor:
@@ -210,6 +210,7 @@ def registerUser(line_user_id, generatedToken, full_name):
         return success
 
 def registerSensor(nama_sensor, id_user):
+    dbconn = connection
     success = False
     try:
         with dbconn.cursor() as cursor:
@@ -222,6 +223,7 @@ def registerSensor(nama_sensor, id_user):
         return success
 
 def isRegistered(line_user_id):
+    dbconn = connection
     registered = False
     try:
         with dbconn.cursor() as cursor:
