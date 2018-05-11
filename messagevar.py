@@ -16,6 +16,10 @@ regSuccess = "Registrasi berhasil, " \
                 "autentikasi pada sensor "\
                 "OWASP Securetea."
 addSensorSuccess = "Penambahan sensor {} berhasil !"
+sensorArgsEmpty = "Penggunaan command /addsensor adalah seperti ini :\n" \
+                    "/addsensor [nama_sensor]\n" \
+                    "Nama sensor kamu kosong, silahkan isikan "\
+                    "nama sensornya."
 illegalCharSensor = "Penamaan sensor hanya boleh menggunakan " \
                         "alphanumeric [A-Z | a-z | 0-9], underscore(_) " \
                         "dan dash(-)."
@@ -43,3 +47,6 @@ aboutMsg = "OWASP HotDrop adalah notification gateway " \
             "melalui line dari sensor OWASP SecureTea project " \
             "Untuk ikut berkontribusi terhadap pengembangan " \
             "kunjungi github : {} ."
+notifyMsg = "Sensor kamu {} mendeteksi adanya aktivitas mencurigakan, " \
+                "berikut adalah detail pesannya \n" \
+                "{}."

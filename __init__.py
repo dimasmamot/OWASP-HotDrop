@@ -23,7 +23,7 @@ from linebot import(
 )
 # Library linebot sdk untuk handling exception yang dihasilkan oleh sdk line bot
 from linebot.exceptions import(
-    InvalidSignatureError
+    InvalidSignatureError, LineBotApiError
 )
 # Library untuk masing-masing fitur/model yang diperlukan untuk bot ini
 # MessageEvent untu menghandle pesan yang masuk ke webhook
@@ -159,55 +159,136 @@ def message_text(event):
                 )
         
         elif command == 'addsensor':
-            print(parsedText[1])
-            # Jika Event add sensor diterima melalui private chat
-            if isinstance(event.source, SourceUser):
-                print("event add sensor diterima melalui privvate chat" ,file=sys.stdout)
-                if re.match('^[\w-]+$', parsedText[1]):
-                    print("nama sensor valid",file=sys.stdout)
-                    print(parsedText[1])
-                    id_user = isRegistered(event.source.user_id)
-                    if id_user:
-                        print("User ID : {} sudah registrasi".format(id_user['id_user']),file=sys.stdout)
-                        if registerSensor(parsedText[1], id_user['id_user']):
-                            print("Sensor berhasil di tambahkan",file=sys.stdout)
-                            #Reply penambahan sensor berhasil & lanjut ke tahap selanjutnya
+            argsEmpty = False
+            try:
+                args = parsedText[1]
+            except Exception as err:
+                print("Nama sensor kosong",file=sys.stdout)
+                argsEmpty = True                
+
+            if not argsEmpty:
+                # Jika Event add sensor diterima melalui private chat
+                if isinstance(event.source, SourceUser):
+                    print("event add sensor diterima melalui privvate chat" ,file=sys.stdout)
+                    if re.match('^[\w-]+$', parsedText[1]):
+                        print("nama sensor valid",file=sys.stdout)
+                        print(parsedText[1])
+                        id_user = isRegistered(event.source.user_id)
+                        if id_user:
+                            print("User ID : {} sudah registrasi".format(id_user['id_user']),file=sys.stdout)
+                            if registerSensor(parsedText[1], id_user['id_user']):
+                                print("Sensor berhasil di tambahkan",file=sys.stdout)
+                                #Reply penambahan sensor berhasil & lanjut ke tahap selanjutnya
+                                line_bot_api.reply_message(
+                                    event.reply_token,
+                                    TextMessage(text=addSensorSuccess.format(parsedText[1]))
+                                )
+                            # Jika terjadi error pada saat menambah sensor
+                            else:
+                                print("Terjadi error penambahan sensor",file=sys.stdout)
+                                line_bot_api.reply_message(
+                                    event.reply_token,
+                                    TextMessage(text=exceptionMsg.format(24,adminEmail))
+                                )
+                        elif isRegisteredVar == None:
+                            print("User belum teregistrasi",file=sys.stdout)
                             line_bot_api.reply_message(
                                 event.reply_token,
-                                TextMessage(text=addSensorSuccess.format(parsedText[1]))
+                                TextMessage(text=unregisteredMsg)
                             )
-                        # Jika terjadi error pada saat menambah sensor
                         else:
-                            print("Terjadi error penambahan sensor",file=sys.stdout)
+                            print("Terjadi error pada saat cek status registrasi",file=sys.stdout)
                             line_bot_api.reply_message(
                                 event.reply_token,
-                                TextMessage(text=exceptionMsg.format(24,adminEmail))
+                                TextMessage(text=exceptionMsg.format(23,adminEmail))
                             )
-                    elif isRegisteredVar == None:
-                        print("User belum teregistrasi",file=sys.stdout)
-                        line_bot_api.reply_message(
-                            event.reply_token,
-                            TextMessage(text=unregisteredMsg)
-                        )
                     else:
-                        print("Terjadi error pada saat cek status registrasi",file=sys.stdout)
+                        print("Nama sensor tidak valid",file=sys.stdout)
                         line_bot_api.reply_message(
                             event.reply_token,
-                            TextMessage(text=exceptionMsg.format(23,adminEmail))
+                            TextMessage(text=illegalCharSensor)
                         )
                 else:
-                    print("Nama sensor tidak valid",file=sys.stdout)
+                    print("Menerima chat diluar private chat")
                     line_bot_api.reply_message(
                         event.reply_token,
-                        TextMessage(text=illegalCharSensor)
+                        TextMessage(text=chatRoomFailed)
                     )
             else:
-                print("Menerima chat diluar private chat")
                 line_bot_api.reply_message(
                     event.reply_token,
-                    TextMessage(text=chatRoomFailed)
+                    TextMessage(text=sensorArgsEmpty)
                 )
                 
+@app.route("/notify", methods=['POST'])
+def notify():
+    content = request.get_json   
+    
+    if isValidRequest(content):
+        isTokenValidVar = isTokenValid(content['token'])
+        if isTokenValidVar:
+            #Token Valid
+            isSensorRegisteredVar = isSensorRegistered(content['token'], content['device_name'])
+            if isSensorRegisteredVar:
+                #Sensor telah teregistrasi
+                try:
+                    line_bot_api.push_message(
+                        isTokenValidVar['line_id_user'],
+                        TextSendMessage(text=notifyMsg.format(content['device_name'], content['event_msg']))
+                    )
+                except LineBotApiError as e:
+                    print("Terjadi error pada saat push notifikasi",file=sys.stderr)
+
+            elif isSensorRegisteredVar == None:
+                #Sensor belum teregistrasi
+                print("Sensor belum di registrasi", file=sys.stdout)
+            else:
+                #Terjadi error pada saat cek status sensor
+                print("Terjadi error ketika cek status sensor",file=sys.stdout)
+            
+        elif isTokenValidVar == None:
+            #Token Tidak valid
+            print("Token tidak valid", file=sys.stdout)
+        else:
+            #Pengecekan token error
+            print("Error pada saat terjadi cek validitas token", file=sys.stderr)
+
+def isSensorRegistered(token, sensor_name):
+    dbconn = pymysql.connect(
+        host='localhost',
+        user='root',
+        password='9L1reyib',
+        db='hotdrop',
+        charset='utf8mb4',
+        cursorclass=pymysql.cursors.DictCursor
+    )
+    registered = False
+    try:
+        with dbconn.cursor() as cursor:
+            sql = "SELECT `tb_sensor`.`id_sensor` FROM `tb_sensor` INNER JOIN `tb_user` ON `tb_sensor`.`fk_id_user`=`tb_user`.`id_user` WHERE `tb_user`.`token` = %s AND `tb_sensor`.`sensor_name` = %s"
+            cursor.execute(sql, (token,sensor_name))
+            result = cursor.fetchone()
+            registered = True
+            print(registered)
+            print(result)
+            return result
+    finally:
+        dbconn.close()
+        if registered == False:
+            return False
+
+def isValidRequest(content):
+    validRequest = True
+    try:
+        token = content['token']
+        device_name = content['device_name']
+        event_msg = content['event_msg']
+
+    except Exception as e:
+        print("Exception raised : {}".format(e),file=sys.stderr)
+        validRequest = False
+    
+    return validRequest
 
 def registerUser(line_user_id, generatedToken, full_name):
     dbconn = pymysql.connect(
@@ -275,6 +356,30 @@ def isRegistered(line_user_id):
     finally:
         dbconn.close()
         if registered == False:
+            return False
+
+def isTokenValid(token):
+    dbconn = pymysql.connect(
+        host='localhost',
+        user='root',
+        password='9L1reyib',
+        db='hotdrop',
+        charset='utf8mb4',
+        cursorclass=pymysql.cursors.DictCursor
+    )
+    valid = False
+    try:
+        with dbconn.cursor() as cursor:
+            sql = "SELECT `line_id_user` FROM `tb_user` WHERE `token`=%s"
+            cursor.execute(sql, (token,))
+            result = cursor.fetchone()
+            valid = True
+            print(valid)
+            print(result)
+            return result
+    finally:
+        dbconn.close()
+        if valid == False:
             return False
 
 def generateToken():
