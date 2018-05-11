@@ -242,8 +242,8 @@ def registerSensor(nama_sensor, id_user):
     success = False
     try:
         with dbconn.cursor() as cursor:
-            sql = "INSERT INTO `tb_sensor` (`fk_id_user`, `sensor_name`) VALUES (%d, %s)"
-            cursor.execute(sql, (int(id_user), nama_sensor))
+            sql = "INSERT INTO `tb_sensor` (`fk_id_user`, `sensor_name`) VALUES (%s, %s)"
+            cursor.execute(sql, (str(id_user), nama_sensor))
         dbconn.commit()
         success = True
     except Exception as err:
